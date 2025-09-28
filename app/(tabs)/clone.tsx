@@ -18,6 +18,10 @@ import { AntDesign } from '@expo/vector-icons';
 
 type FilterType = 'all' | 'public' | 'private' | 'forks';
 
+type SortType = 'Recently pushed' | 'Newest' | 'Oldest' | 'Most starred' | 'Least starred';
+
+const sortOptions: SortType[] = ['Recently pushed', 'Newest', 'Oldest', 'Most starred', 'Least starred'];
+
 export default function CloneScreen() {
   const { token } = useAuth();
   const [allRepos, setAllRepos] = useState<Repo[]>([]);
@@ -32,15 +36,27 @@ export default function CloneScreen() {
   const [languageFilter, setLanguageFilter] = useState<string>('all');
   const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
   const [languages, setLanguages] = useState<string[]>([]);
+  const [sortFilter, setSortFilter] = useState<SortType>('Recently pushed');
+  const [isSortModalVisible, setIsSortModalVisible] = useState(false);
 
-  const fetchRepos = useCallback(async (filter: FilterType) => {
+  const fetchRepos = useCallback(async (filter: FilterType, sort: SortType) => {
     if (!token) {
       setLoading(false);
       setError('Authentication token not found.');
       return;
     }
     try {
-      let apiUrl = 'https://api.github.com/user/repos?sort=pushed';
+      let sortQuery = 'pushed';
+      let direction = 'desc';
+
+      if (sort === 'Newest') {
+        sortQuery = 'created';
+      } else if (sort === 'Oldest') {
+        sortQuery = 'created';
+        direction = 'asc';
+      }
+
+      let apiUrl = `https://api.github.com/user/repos?sort=${sortQuery}&direction=${direction}`;
       if (filter === 'public' || filter === 'private') {
         apiUrl += `&type=${filter}`;
       } else {
@@ -73,22 +89,32 @@ export default function CloneScreen() {
 
   useEffect(() => {
     setLoading(true);
-    fetchRepos(typeFilter).finally(() => setLoading(false));
-  }, [fetchRepos, typeFilter]);
+    fetchRepos(typeFilter, sortFilter).finally(() => setLoading(false));
+  }, [fetchRepos, typeFilter, sortFilter]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchRepos(typeFilter);
+    await fetchRepos(typeFilter, sortFilter);
     setRefreshing(false);
-  }, [fetchRepos, typeFilter]);
+  }, [fetchRepos, typeFilter, sortFilter]);
+
+  const sortedRepos = useMemo(() => {
+    const sorted = [...allRepos];
+    if (sortFilter === 'Most starred') {
+      sorted.sort((a, b) => b.stargazers_count - a.stargazers_count);
+    } else if (sortFilter === 'Least starred') {
+      sorted.sort((a, b) => a.stargazers_count - b.stargazers_count);
+    }
+    return sorted;
+  }, [allRepos, sortFilter]);
 
   const filteredRepos = useMemo(() => {
-    return allRepos.filter((repo) => {
+    return sortedRepos.filter((repo) => {
       const matchesSearch = repo.full_name.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesLanguage = languageFilter === 'all' || repo.language === languageFilter;
       return matchesSearch && matchesLanguage;
     });
-  }, [allRepos, searchQuery, languageFilter]);
+  }, [sortedRepos, searchQuery, languageFilter]);
 
   const renderFilterModal = () => (
     <Modal
@@ -136,6 +162,29 @@ export default function CloneScreen() {
     </Modal>
   );
 
+  const renderSortModal = () => (
+    <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isSortModalVisible}
+        onRequestClose={() => setIsSortModalVisible(false)}
+    >
+        <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Sort by</Text>
+                {sortOptions.map((option) => (
+                    <TouchableOpacity key={option} style={styles.modalOption} onPress={() => {
+                        setSortFilter(option);
+                        setIsSortModalVisible(false);
+                    }}>
+                        <Text style={styles.modalOptionText}>{option}</Text>
+                    </TouchableOpacity>
+                ))}
+            </View>
+        </View>
+    </Modal>
+  );
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -157,14 +206,26 @@ export default function CloneScreen() {
     <SafeAreaView style={styles.listContainer}>
         {renderFilterModal()}
         {renderLanguageModal()}
+        {renderSortModal()}
       <View style={styles.header}>
-        <View style={styles.headerTitleContainer}>
+        {isSearchActive ? (
+          <TextInput
+            style={styles.searchBarHeader}
+            placeholder="Search repositories..."
+            placeholderTextColor="#A0AEC0"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoFocus
+          />
+        ) : (
+          <View style={styles.headerTitleContainer}>
             <Text style={styles.title}>Repositories</Text>
-        </View>
+          </View>
+        )}
         <View style={styles.searchIconContainer}>
             <GlassButton
                 onPress={() => setIsSearchActive(!isSearchActive)}
-                iconName="search"
+                iconName={isSearchActive ? "close" : "search"}
                 size={40}
             />
         </View>
@@ -179,22 +240,11 @@ export default function CloneScreen() {
           <Text style={styles.filterButtonText}>Language: {languageFilter}</Text>
           <AntDesign name="down" size={12} color="#A0AEC0" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.filterButton}>
-          <Text style={styles.filterButtonText}>Sort</Text>
+        <TouchableOpacity style={styles.filterButton} onPress={() => setIsSortModalVisible(true)}>
+          <Text style={styles.filterButtonText}>Sort: {sortFilter}</Text>
           <AntDesign name="down" size={12} color="#A0AEC0" />
         </TouchableOpacity>
       </View>
-
-      {isSearchActive && (
-        <TextInput
-          style={styles.searchBar}
-          placeholder="Search repositories..."
-          placeholderTextColor="#A0AEC0"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          autoFocus
-        />
-      )}
 
       <FlatList
         data={filteredRepos}
@@ -265,15 +315,15 @@ const styles = StyleSheet.create({
   },
   filterButtonText: {
     color: '#A0AEC0',
-    fontSize: 14,
+    fontSize: 12,
     marginRight: 5,
   },
-  searchBar: {
+  searchBarHeader: {
+    flex: 1,
     backgroundColor: '#2D3748',
     color: '#E2E8F0',
-    marginHorizontal: 20,
-    marginBottom: 15,
-    padding: 15,
+    marginRight: 60,
+    padding: 10,
     borderRadius: 10,
     fontSize: 16,
   },
