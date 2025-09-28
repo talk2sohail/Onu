@@ -29,6 +29,9 @@ export default function CloneScreen() {
 
   const [typeFilter, setTypeFilter] = useState<FilterType>('all');
   const [isTypeModalVisible, setIsTypeModalVisible] = useState(false);
+  const [languageFilter, setLanguageFilter] = useState<string>('all');
+  const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
+  const [languages, setLanguages] = useState<string[]>([]);
 
   const fetchRepos = useCallback(async (filter: FilterType) => {
     if (!token) {
@@ -60,6 +63,8 @@ export default function CloneScreen() {
       }
 
       setAllRepos(data);
+      const uniqueLanguages = Array.from(new Set(data.map((repo: Repo) => repo.language).filter(Boolean))) as string[];
+      setLanguages(['all', ...uniqueLanguages]);
       setError(null);
     } catch (e: any) {
       setError(e.message);
@@ -78,10 +83,12 @@ export default function CloneScreen() {
   }, [fetchRepos, typeFilter]);
 
   const filteredRepos = useMemo(() => {
-    return allRepos.filter((repo) =>
-      repo.full_name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [allRepos, searchQuery]);
+    return allRepos.filter((repo) => {
+      const matchesSearch = repo.full_name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesLanguage = languageFilter === 'all' || repo.language === languageFilter;
+      return matchesSearch && matchesLanguage;
+    });
+  }, [allRepos, searchQuery, languageFilter]);
 
   const renderFilterModal = () => (
     <Modal
@@ -99,6 +106,29 @@ export default function CloneScreen() {
                         setIsTypeModalVisible(false);
                     }}>
                         <Text style={styles.modalOptionText}>{type.charAt(0).toUpperCase() + type.slice(1)}</Text>
+                    </TouchableOpacity>
+                ))}
+            </View>
+        </View>
+    </Modal>
+  );
+
+  const renderLanguageModal = () => (
+    <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isLanguageModalVisible}
+        onRequestClose={() => setIsLanguageModalVisible(false)}
+    >
+        <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Select Language</Text>
+                {languages.map((lang) => (
+                    <TouchableOpacity key={lang} style={styles.modalOption} onPress={() => {
+                        setLanguageFilter(lang);
+                        setIsLanguageModalVisible(false);
+                    }}>
+                        <Text style={styles.modalOptionText}>{lang.charAt(0).toUpperCase() + lang.slice(1)}</Text>
                     </TouchableOpacity>
                 ))}
             </View>
@@ -126,6 +156,7 @@ export default function CloneScreen() {
   return (
     <SafeAreaView style={styles.listContainer}>
         {renderFilterModal()}
+        {renderLanguageModal()}
       <View style={styles.header}>
         <View style={styles.headerTitleContainer}>
             <Text style={styles.title}>Repositories</Text>
@@ -144,8 +175,8 @@ export default function CloneScreen() {
           <Text style={styles.filterButtonText}>Type: {typeFilter}</Text>
           <AntDesign name="down" size={12} color="#A0AEC0" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.filterButton}>
-          <Text style={styles.filterButtonText}>Language</Text>
+        <TouchableOpacity style={styles.filterButton} onPress={() => setIsLanguageModalVisible(true)}>
+          <Text style={styles.filterButtonText}>Language: {languageFilter}</Text>
           <AntDesign name="down" size={12} color="#A0AEC0" />
         </TouchableOpacity>
         <TouchableOpacity style={styles.filterButton}>
