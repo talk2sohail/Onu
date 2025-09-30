@@ -10,6 +10,7 @@ export interface Repo {
 	language: string | null;
 	stargazers_count: number;
 	private: boolean;
+	fork: boolean;
 }
 
 interface RepoCardProps {
