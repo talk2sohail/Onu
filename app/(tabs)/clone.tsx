@@ -7,11 +7,8 @@ import {
   ActivityIndicator,
   TextInput,
   RefreshControl,
-  SafeAreaView,
   TouchableOpacity,
-  Modal,
   ScrollView,
-  TouchableWithoutFeedback,
 } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import RepoCard, { Repo } from "../components/RepoCard";
@@ -194,7 +191,7 @@ export default function CloneScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.listContainer}>
+    <View style={styles.listContainer}>
       <FilterModal
         visible={isTypeModalVisible}
         onClose={() => setIsTypeModalVisible(false)}
@@ -340,7 +337,7 @@ export default function CloneScreen() {
         }
         contentContainerStyle={{ paddingBottom: 50 }}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

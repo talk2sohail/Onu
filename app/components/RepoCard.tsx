@@ -11,8 +11,8 @@ export interface Repo {
   stargazers_count: number;
   private: boolean;
   fork: boolean;
-  created_at: string | null;
-  pushed_at: string | null;
+  created_at: string | number | Date;
+  pushed_at: string | number | Date;
 }
 
 interface RepoCardProps {

@@ -50,7 +50,7 @@ export default function AuthScreen() {
           </Text>
           <TouchableOpacity onPress={handleLinkPress}>
             <Text style={styles.link}>
-              Create a new token with 'repo' scope here.
+              Create a new token with &apos;repo&apos; scope here.
             </Text>
           </TouchableOpacity>
           <TextInput
@@ -99,7 +99,7 @@ export default function AuthScreen() {
             </Text>
             <TouchableOpacity onPress={handleLinkPress}>
               <Text style={styles.link}>
-                Create a new token with 'repo' scope here.
+                Create a new token with &apos;repo&apos; scope here.
               </Text>
             </TouchableOpacity>
             <TextInput
