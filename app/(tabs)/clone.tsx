@@ -34,7 +34,7 @@ const sortOptions: SortType[] = [
 ];
 
 export default function CloneScreen() {
-  const { token } = useAuth();
+  const { token, handleUnauthorized } = useAuth();
   const [allRepos, setAllRepos] = useState<Repo[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchActive, setIsSearchActive] = useState(false);
@@ -82,6 +82,10 @@ export default function CloneScreen() {
         },
       });
       if (!response.ok) {
+        if (response.status === 401) {
+          handleUnauthorized();
+          return;
+        }
         throw new Error(
           `Failed to fetch repositories. Status: ${response.status}`,
         );
